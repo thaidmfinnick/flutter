@@ -1464,6 +1464,9 @@ class _SelectableFragment with Selectable, Diagnosticable, ChangeNotifier implem
           directionallyExtendSelection.isEnd,
           directionallyExtendSelection.direction,
         );
+      case SelectionEventType.selectParagraph:
+        final SelectParagraphSelectionEvent selectParagraph = event as SelectParagraphSelectionEvent;
+        result = _handleSelectParagraph(selectParagraph.globalPosition);
     }
 
     if (existingSelectionStart != _textSelectionStart ||
@@ -1474,15 +1477,34 @@ class _SelectableFragment with Selectable, Diagnosticable, ChangeNotifier implem
   }
 
   @override
-  SelectedContent? getSelectedContent() {
+  SelectedContent? getSelectedContent({bool isMarkdown = false}) {
     if (_textSelectionStart == null || _textSelectionEnd == null) {
       return null;
     }
     final int start = math.min(_textSelectionStart!.offset, _textSelectionEnd!.offset);
     final int end = math.max(_textSelectionStart!.offset, _textSelectionEnd!.offset);
-    return SelectedContent(
-      plainText: fullText.substring(start, end),
-    );
+
+    if(start != end) {
+      final Offset startOffsetInParagraphCoordinates = paragraph._getOffsetForPosition(TextPosition(offset: _textSelectionStart!.offset));
+      final Offset endOffsetInParagraphCoordinates = paragraph._getOffsetForPosition(TextPosition(offset: _textSelectionEnd!.offset));
+      final double startDy = startOffsetInParagraphCoordinates.dy;
+      final double endDy = endOffsetInParagraphCoordinates.dy;
+
+      late int line;
+
+      try{
+        line = (startDy > endDy ? startDy/endDy : endDy/startDy).floor();
+      } catch (err) {
+        line = 1;
+      }
+
+      return SelectedContent(
+        plainText: fullText.substring(start, end),
+        line: line
+      );
+    } else {
+      return null;
+    }
   }
 
   void _didChangeSelection() {
@@ -1752,6 +1774,19 @@ class _SelectableFragment with Selectable, Diagnosticable, ChangeNotifier implem
     _textSelectionStart = TextPosition(offset: range.start);
     _textSelectionEnd = TextPosition(offset: range.end, affinity: TextAffinity.upstream);
     return SelectionResult.none;
+  }
+
+  SelectionResult _handleSelectParagraph(Offset globalPosition) {
+    final TextPosition position = paragraph.getPositionForOffset(paragraph.globalToLocal(globalPosition));
+
+    if (_positionIsWithinCurrentSelection(position)) {
+      return SelectionResult.end;
+    }
+
+    final TextRange word = paragraph._textPainter.getLineBoundary(position);
+    _textSelectionStart = TextPosition(offset: word.start);
+    _textSelectionEnd = TextPosition(offset: word.end, affinity: TextAffinity.upstream);
+    return SelectionResult.end;
   }
 
   SelectionResult _handleSelectWord(Offset globalPosition) {
@@ -2083,7 +2118,7 @@ class _SelectableFragment with Selectable, Diagnosticable, ChangeNotifier implem
         ..color = paragraph.selectionColor!;
       for (final TextBox textBox in paragraph.getBoxesForSelection(selection)) {
         context.canvas.drawRect(
-            textBox.toRect().shift(offset), selectionPaint);
+            textBox.toRect().deflate(-0.3).shift(offset), selectionPaint);
       }
     }
     if (_startHandleLayerLink != null && value.startSelectionPoint != null) {

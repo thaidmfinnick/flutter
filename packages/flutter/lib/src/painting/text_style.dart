@@ -459,6 +459,7 @@ const String _kColorBackgroundWarning = 'Cannot provide both a backgroundColor a
 ///  * [TextStyle](https://api.flutter.dev/flutter/dart-ui/TextStyle-class.html), the class in the [dart:ui] library.
 ///  * Cookbook: [Use a custom font](https://flutter.dev/docs/cookbook/design/fonts)
 ///  * Cookbook: [Use themes to share colors and font styles](https://flutter.dev/docs/cookbook/design/themes)
+const List<String> defaultFontFamily = ['Roboto', 'Apple Color Emoji'];
 @immutable
 class TextStyle with Diagnosticable {
   /// Creates a text style.
@@ -925,7 +926,7 @@ class TextStyle with Diagnosticable {
       decorationThickness: decorationThickness ?? this.decorationThickness,
       debugLabel: newDebugLabel,
       fontFamily: fontFamily ?? _fontFamily,
-      fontFamilyFallback: fontFamilyFallback ?? _fontFamilyFallback,
+      fontFamilyFallback: fontFamilyFallback ?? defaultFontFamily,
       package: package ?? _package,
       overflow: overflow ?? this.overflow,
     );

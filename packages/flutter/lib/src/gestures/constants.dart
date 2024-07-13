@@ -7,7 +7,7 @@
 
 /// The time that must elapse before a tap gesture sends onTapDown, if there's
 /// any doubt that the gesture is a tap.
-const Duration kPressTimeout = Duration(milliseconds: 100);
+const Duration kPressTimeout = Duration(milliseconds: 5);
 
 /// Maximum length of time between a tap down and a tap up for the gesture to be
 /// considered a tap. (Currently not honored by the TapGestureRecognizer.)

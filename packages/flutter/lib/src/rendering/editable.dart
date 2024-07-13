@@ -2,13 +2,15 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 
+// ignore_for_file: public_member_api_docs, always_specify_types
+
 import 'dart:collection';
 import 'dart:math' as math;
 import 'dart:ui' as ui show BoxHeightStyle, BoxWidthStyle, LineMetrics, PlaceholderAlignment, TextBox;
 
-import 'package:characters/characters.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter/semantics.dart';
 import 'package:flutter/services.dart';
 
@@ -569,6 +571,16 @@ class RenderEditable extends RenderBox with RelayoutWhenSystemFontsChangeMixin, 
     assert(value.characters.length == 1);
     _obscuringCharacter = value;
     markNeedsLayout();
+  }
+
+  void selectWithPositionString(int baseOffset, int extentOffset, SelectionChangedCause cause) {
+    _setSelection(
+      TextSelection(
+        baseOffset: baseOffset,
+        extentOffset: extentOffset
+      ),
+      cause
+    );
   }
 
   /// Whether to hide the text being edited (e.g., for passwords).
@@ -1824,6 +1836,13 @@ class RenderEditable extends RenderBox with RelayoutWhenSystemFontsChangeMixin, 
 
     caretRect = caretRect.shift(_paintOffset);
     return caretRect.shift(_snapToPhysicalPixel(caretRect.topLeft));
+  }
+
+  Offset getOffsetForPosition(TextPosition textPosition) {
+    _computeTextMetricsIfNeeded();
+    final Offset caretOffset = _textPainter.getOffsetForCaret(textPosition, _caretPrototype);
+
+    return localToGlobal(caretOffset + _paintOffset);
   }
 
   @override

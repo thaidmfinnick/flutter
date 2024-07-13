@@ -475,9 +475,13 @@ class _DatePickerDialogState extends State<DatePickerDialog> with RestorationMix
   }
 
   void _handleDateChanged(DateTime date) {
-    setState(() {
-      _selectedDate.value = date;
-    });
+    if (_selectedDate.value == date) {
+      _handleOk();
+    } else {
+      setState(() {
+        _selectedDate.value = date;
+      });
+    }
   }
 
   Size _dialogSize(BuildContext context) {

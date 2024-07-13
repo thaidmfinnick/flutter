@@ -3,6 +3,8 @@
 // found in the LICENSE file.
 
 import 'dart:async';
+// ignore_for_file: always_specify_types, avoid_dynamic_calls
+
 import 'dart:math';
 
 import 'package:flutter/foundation.dart';
@@ -1598,6 +1600,19 @@ class _SelectableRegionContainerDelegate extends MultiSelectableSelectionContain
     return result;
   }
 
+  @override
+  SelectionResult handleSelectParagraph(SelectParagraphSelectionEvent event) {
+    final SelectionResult result = super.handleSelectParagraph(event);
+    if (currentSelectionStartIndex != -1) {
+      _hasReceivedStartEvent.add(selectables[currentSelectionStartIndex]);
+    }
+    if (currentSelectionEndIndex != -1) {
+      _hasReceivedEndEvent.add(selectables[currentSelectionEndIndex]);
+    }
+    _updateLastEdgeEventsFromGeometries();
+    return result;
+  }
+
   /// Selects a word in a selectable at the location
   /// [SelectWordSelectionEvent.globalPosition].
   @override
@@ -1654,6 +1669,7 @@ class _SelectableRegionContainerDelegate extends MultiSelectableSelectionContain
         _hasReceivedEndEvent.remove(selectable);
       case SelectionEventType.selectAll:
       case SelectionEventType.selectWord:
+      case SelectionEventType.selectParagraph:
         break;
       case SelectionEventType.granularlyExtendSelection:
       case SelectionEventType.directionallyExtendSelection:
@@ -1871,14 +1887,17 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
   void _removeSelectable(Selectable selectable) {
     assert(selectables.contains(selectable), 'The selectable is not in this registrar.');
     final int index = selectables.indexOf(selectable);
-    selectables.removeAt(index);
-    if (index <= currentSelectionEndIndex) {
-      currentSelectionEndIndex -= 1;
+
+    if(index != -1) {
+      selectables.removeAt(index);
+      if (index <= currentSelectionEndIndex) {
+        currentSelectionEndIndex -= 1;
+      }
+      if (index <= currentSelectionStartIndex) {
+        currentSelectionStartIndex -= 1;
+      }
+      selectable.removeListener(_handleSelectableGeometryChange);
     }
-    if (index <= currentSelectionStartIndex) {
-      currentSelectionStartIndex -= 1;
-    }
-    selectable.removeListener(_handleSelectableGeometryChange);
   }
 
   /// Called when this delegate finishes updating the selectables.
@@ -2160,24 +2179,81 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
 
   /// Copies the selected contents of all selectables.
   @override
-  SelectedContent? getSelectedContent() {
-    final List<SelectedContent> selections = <SelectedContent>[];
-    for (final Selectable selectable in selectables) {
-      final SelectedContent? data = selectable.getSelectedContent();
-      if (data != null) {
-        selections.add(data);
+  SelectedContent? getSelectedContent({bool isMarkdown = false}) {
+    if(isMarkdown) {
+      final dataSelections = [];
+      for (final Selectable selectable in selectables) {
+        final SelectedContent? data = selectable.getSelectedContent(isMarkdown: isMarkdown);
+        if (data != null) {
+          final Matrix4 startTransform = getTransformFrom(selectable);
+          final selectPoint = selectable.value.startSelectionPoint;
+
+          if(selectPoint != null) {
+            final Offset offset = MatrixUtils.transformPoint(startTransform, selectPoint.localPosition);
+            final dy = ((offset.dy)/(data.line)).ceil();
+
+            final index = dataSelections.indexWhere((e) => ((e['offset'] as int) - dy).abs() < 15);
+            if(index == -1) {
+              dataSelections.add({
+                'offset': dy,
+                'data': <SelectedContent>[data]
+              });
+            } else {
+              (dataSelections[index]['data'] as List<SelectedContent>).add(data);
+            }
+          } else {
+            dataSelections.add({
+              'offset': 0,
+              'data': <SelectedContent>[data]
+            });
+          }
+        }
       }
+
+      if(dataSelections.isEmpty) {
+        return null;
+      }
+
+      final StringBuffer buffer = StringBuffer();
+      for (final data in dataSelections) {
+        final StringBuffer localBuffer = StringBuffer();
+        for(final content in data['data'] as List<SelectedContent>) {
+          localBuffer.write('${content.plainText} ');
+        }
+
+        buffer.write('$localBuffer\n');
+      }
+
+      return SelectedContent(
+        plainText: buffer.toString().trim(),
+      );
+    } else {
+      final List<SelectedContent> selections = <SelectedContent>[];
+      for (final Selectable selectable in selectables) {
+        final SelectedContent? data = selectable.getSelectedContent();
+
+        if (data != null) {
+          selections.add(data);
+        }
+      }
+      if (selections.isEmpty) {
+        return null;
+      }
+      final StringBuffer buffer = StringBuffer();
+      for (final SelectedContent selection in selections) {
+        String txt = selection.plainText;
+        if(selection.plainText == '\u202F') {
+          txt = '\n';
+        } else if(selection.plainText.endsWith('\u202F')) {
+          txt = selection.plainText.replaceAll('\u202F', '\n');
+        }
+        buffer.write(txt);
+      }
+
+      return SelectedContent(
+        plainText: buffer.toString(),
+      );
     }
-    if (selections.isEmpty) {
-      return null;
-    }
-    final StringBuffer buffer = StringBuffer();
-    for (final SelectedContent selection in selections) {
-      buffer.write(selection.plainText);
-    }
-    return SelectedContent(
-      plainText: buffer.toString(),
-    );
   }
 
   // Clears the selection on all selectables not in the range of
@@ -2216,6 +2292,37 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
     }
     currentSelectionStartIndex = 0;
     currentSelectionEndIndex = selectables.length - 1;
+    return SelectionResult.none;
+  }
+
+  /// Select paragraph with selectables
+  @protected
+  SelectionResult handleSelectParagraph(SelectParagraphSelectionEvent event) {
+    if(selectables.length == 1) {
+      for (final e in selectables) {
+        dispatchSelectionEventToChild(e, event);
+      }
+    } else {
+      for (int i = 0; i < selectables.length; i ++){
+        final item = selectables[i];
+        final Rect localRect = Rect.fromLTWH(0, 0, item.size.width, item.size.height);
+        final Matrix4 transform = item.getTransformTo(null);
+        final Rect globalRect = MatrixUtils.transformRect(transform, localRect);
+
+        if(event.globalPosition.dy >= globalRect.top && event.globalPosition.dy < globalRect.bottom) {
+          dispatchSelectionEventToChild(item, event);
+          if(currentSelectionStartIndex == -1) {
+            currentSelectionStartIndex = i;
+          } else {
+            currentSelectionEndIndex = i;
+          }
+        }
+      }
+
+      if((getSelectedContent()?.plainText ?? '').isNotEmpty) {
+        return SelectionResult.end;
+      }
+    }
     return SelectionResult.none;
   }
 
@@ -2402,6 +2509,8 @@ abstract class MultiSelectableSelectionContainerDelegate extends SelectionContai
       case SelectionEventType.directionallyExtendSelection:
         _extendSelectionInProgress = true;
         result = handleDirectionallyExtendSelection(event as DirectionallyExtendSelectionEvent);
+      case SelectionEventType.selectParagraph:
+        result = handleSelectParagraph(event as SelectParagraphSelectionEvent);
     }
     _isHandlingSelectionEvent = false;
     _updateSelectionGeometry();
