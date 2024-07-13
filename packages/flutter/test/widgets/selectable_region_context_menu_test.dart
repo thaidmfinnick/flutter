@@ -161,7 +161,7 @@ class RenderSelectionSpy extends RenderProxyBox
   }
 
   @override
-  SelectedContent? getSelectedContent() {
+  SelectedContent? getSelectedContent({bool isMarkdown = false}) {
     return const SelectedContent(plainText: 'content');
   }
 

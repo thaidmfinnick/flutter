@@ -439,7 +439,17 @@ class TextSelectionOverlay {
   /// {@macro flutter.widgets.SelectionOverlay.showHandles}
   void showHandles() {
     _updateSelectionOverlay();
-    _selectionOverlay.showHandles();
+    switch (defaultTargetPlatform) {
+      case TargetPlatform.macOS:
+      case TargetPlatform.fuchsia:
+      case TargetPlatform.linux:
+      case TargetPlatform.windows:
+        break;
+      case TargetPlatform.android:
+      case TargetPlatform.iOS:
+        _selectionOverlay.showHandles();
+        break;
+    }
   }
 
   /// {@macro flutter.widgets.SelectionOverlay.hideHandles}

@@ -172,9 +172,9 @@ class _SelectionContainerState extends State<SelectionContainer> with Selectable
   }
 
   @override
-  SelectedContent? getSelectedContent() {
+  SelectedContent? getSelectedContent({bool isMarkdown = false}) {
     assert(!widget._disabled);
-    return widget.delegate!.getSelectedContent();
+    return widget.delegate!.getSelectedContent(isMarkdown: isMarkdown);
   }
 
   @override

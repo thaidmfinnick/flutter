@@ -3079,7 +3079,7 @@ class ScaffoldState extends State<Scaffold> with TickerProviderStateMixin, Resto
           child: AnimatedBuilder(animation: _floatingActionButtonMoveController, builder: (BuildContext context, Widget? child) {
             return Actions(
               actions: <Type, Action<Intent>>{
-                DismissIntent: _DismissDrawerAction(context),
+                // DismissIntent: _DismissDrawerAction(context),
               },
               child: CustomMultiChildLayout(
                 delegate: _ScaffoldLayout(

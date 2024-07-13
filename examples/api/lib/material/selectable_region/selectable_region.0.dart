@@ -258,6 +258,7 @@ class _RenderSelectableAdapter extends RenderProxyBox with Selectable, Selection
           }
           _start = newOffset;
         }
+      case SelectionEventType.selectParagraph:
     }
     _updateGeometry();
     return result;
@@ -266,7 +267,7 @@ class _RenderSelectableAdapter extends RenderProxyBox with Selectable, Selection
   // This method is called when users want to copy selected content in this
   // widget into clipboard.
   @override
-  SelectedContent? getSelectedContent() {
+  SelectedContent? getSelectedContent({bool isMarkdown = false}) {
     return value.hasSelection ? const SelectedContent(plainText: 'Custom Text') : null;
   }
 

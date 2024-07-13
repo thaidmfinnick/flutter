@@ -3,6 +3,7 @@
 // found in the LICENSE file.
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/rendering.dart';
 import 'package:vector_math/vector_math_64.dart';
 
 import 'layer.dart';
@@ -84,7 +85,7 @@ abstract class SelectionHandler implements ValueListenable<SelectionGeometry> {
   /// Gets the selected content in this object.
   ///
   /// Return `null` if nothing is selected.
-  SelectedContent? getSelectedContent();
+  SelectedContent? getSelectedContent({bool isMarkdown = false});
 
   /// Handles the [SelectionEvent] sent to this object.
   ///
@@ -107,10 +108,12 @@ class SelectedContent {
   /// Creates a selected content object.
   ///
   /// Only supports plain text.
-  const SelectedContent({required this.plainText});
+  const SelectedContent({required this.plainText, this.line = 1});
 
   /// The selected content in plain text format.
   final String plainText;
+
+  final int line;
 }
 
 /// A mixin that can be selected by users when under a [SelectionArea] widget.
@@ -304,6 +307,12 @@ enum SelectionEventType {
 
   /// An event that extends the selection in a specific direction.
   directionallyExtendSelection,
+
+  /// An event to select a paragraph at the location
+  /// [SelectParagraphSelectionEvent.globalPosition].
+  ///
+  /// Used by [SelectParagraphSelectionEvent].
+  selectParagraph
 }
 
 /// The unit of how selection handles move in text.
@@ -367,6 +376,18 @@ class SelectWordSelectionEvent extends SelectionEvent {
   const SelectWordSelectionEvent({required this.globalPosition}): super._(SelectionEventType.selectWord);
 
   /// The position in global coordinates to select word at.
+  final Offset globalPosition;
+}
+
+
+/// Selects the whole paragraph at the location.
+///
+/// This event can be sent as the result of desktop when triple click to selection.
+class SelectParagraphSelectionEvent extends SelectionEvent {
+  /// Creates a select paragraph event at the [globalPosition].
+  const SelectParagraphSelectionEvent({required this.globalPosition}): super._(SelectionEventType.selectParagraph);
+
+  /// The position in global coordinates to select paragraph at.
   final Offset globalPosition;
 }
 

@@ -178,6 +178,7 @@ class _DropdownMenuItemButtonState<T> extends State<_DropdownMenuItemButton<T>> 
       child = InkWell(
         autofocus: widget.itemIndex == widget.route.selectedIndex,
         enableFeedback: widget.enableFeedback,
+        // hoverColor: Colors.transparent,
         onTap: _handleOnTap,
         onFocusChange: _handleFocusChange,
         child: child,
@@ -1536,6 +1537,7 @@ class _DropdownButtonState<T> extends State<DropdownButton<T>> with WidgetsBindi
           borderRadius: widget.borderRadius,
           focusNode: focusNode,
           autofocus: widget.autofocus,
+          hoverColor: Colors.transparent,
           focusColor: widget.focusColor ?? Theme.of(context).focusColor,
           enableFeedback: false,
           child: widget.padding == null ? result : Padding(padding: widget.padding!, child: result),
